@@ -1,0 +1,34 @@
+# Run the full stack locally with a real PostgreSQL:
+#   docker compose up --build
+# then open http://localhost:3000
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: leadersync
+      POSTGRES_PASSWORD: leadersync
+      POSTGRES_DB: leadersync
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U leadersync']
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgres://leadersync:leadersync@db:5432/leadersync
+      DATABASE_SSL: 'false'
+      # Plain HTTP on localhost; remove when serving behind HTTPS.
+      COOKIE_SECURE: 'false'
+      # Change this for anything other than local testing.
+      JWT_SECRET: local-docker-secret-please-change-0123456789abcdef
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,28 @@
+# Render Blueprint: one web service + one managed PostgreSQL database.
+# In Render: New > Blueprint > select this repository.
+services:
+  - type: web
+    name: leadersync
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      # Render's internal database URL is on a private network without TLS.
+      - key: DATABASE_SSL
+        value: 'false'
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: leadersync-db
+          property: connectionString
+
+databases:
+  - name: leadersync-db
+    plan: free
