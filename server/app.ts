@@ -26,6 +26,7 @@ export function createApp() {
       contentSecurityPolicy: {
         directives: {
           ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
           'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
           // Let HTTPS be enforced by the host/proxy; this directive breaks plain-HTTP setups.
@@ -56,14 +57,16 @@ export function createApp() {
   app.use('/api', notFoundApi);
 
   // ---- Frontend (production build) ----
-  const indexHtml = path.join(config.clientDistDir, 'index.html');
-  if (fs.existsSync(indexHtml)) {
-    app.use(express.static(config.clientDistDir, { index: false, maxAge: '1y', immutable: true }));
-    // SPA fallback: any non-API GET returns index.html (never cached so new deploys load immediately).
-    app.get(/^(?!\/api\/).*/, (_req, res) => {
-      res.setHeader('Cache-Control', 'no-cache');
-      res.sendFile(indexHtml);
-    });
+  if (config.isProduction) {
+    const indexHtml = path.join(config.clientDistDir, 'index.html');
+    if (fs.existsSync(indexHtml)) {
+      app.use(express.static(config.clientDistDir, { index: false, maxAge: '1y', immutable: true }));
+      // SPA fallback: any non-API GET returns index.html (never cached so new deploys load immediately).
+      app.get(/^(?!\/api\/).*/, (_req, res) => {
+        res.setHeader('Cache-Control', 'no-cache');
+        res.sendFile(indexHtml);
+      });
+    }
   }
 
   app.use(errorHandler);

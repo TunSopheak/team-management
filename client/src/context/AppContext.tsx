@@ -15,7 +15,7 @@ interface AppContextType {
   status: SessionStatus;
   currentUser: User;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; nameKm?: string; email: string; studentId: string; password: string }) => Promise<void>;
+  register: (data: { name: string; nameKm?: string; email: string; studentId: string; password: string; groupCode?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 
@@ -67,6 +67,7 @@ interface AppContextType {
     category: Group['category'];
   }) => Promise<void>;
   deleteGroup: (groupId: string) => Promise<void>;
+  joinGroup: (codeOrId: string) => Promise<void>;
   leaveGroup: (userId: string, groupId?: string) => Promise<void>;
   updateGroupDeadline: (groupId: string, newDeadline: string) => Promise<void>;
 
@@ -284,6 +285,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveGroupIdState(id);
       }),
     deleteGroup: groupId => run(() => api.deleteGroup(groupId)),
+    joinGroup: codeOrId =>
+      run(async () => {
+        const res = await api.joinGroup(codeOrId);
+        setActiveGroupIdState(res.group.id);
+      }, language === 'km' ? 'បានចូលរួមក្រុមដោយជោគជ័យ!' : 'Successfully joined group!'),
     leaveGroup: (userId, groupId) => run(() => api.removeMember(groupId || resolvedGroupId, userId)),
     updateGroupDeadline: (groupId, deadline) => quiet(run(() => api.updateGroup(groupId, { deadline }))),
 

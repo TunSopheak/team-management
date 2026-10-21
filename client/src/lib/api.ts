@@ -37,7 +37,7 @@ export const api = {
   // Auth
   me: () => get<{ user: User }>('/auth/me'),
   login: (email: string, password: string) => post<{ user: User }>('/auth/login', { email, password }),
-  register: (data: { name: string; nameKm?: string; email: string; studentId: string; password: string }) =>
+  register: (data: { name: string; nameKm?: string; email: string; studentId: string; password: string; groupCode?: string }) =>
     post<{ user: User }>('/auth/register', data),
   logout: () => post('/auth/logout'),
   changePassword: (currentPassword: string, newPassword: string) =>
@@ -55,6 +55,7 @@ export const api = {
     deadline?: string;
     category: GroupCategory;
   }) => post<{ id: string }>('/groups', data),
+  joinGroup: (codeOrId: string) => post<{ group: { id: string; name: string; code: string } }>('/groups/join', { codeOrId }),
   updateGroup: (groupId: string, data: { deadline?: string | null }) => patch(`/groups/${groupId}`, data),
   deleteGroup: (groupId: string) => del(`/groups/${groupId}`),
   addMember: (

@@ -63,6 +63,52 @@ groupsRouter.post('/groups', async (req, res) => {
   res.status(201).json({ id: group.id });
 });
 
+const joinGroupSchema = z.object({
+  codeOrId: z.string().trim().min(1).max(100),
+});
+
+groupsRouter.post('/groups/join', async (req, res) => {
+  const user = req.user!;
+  const input = joinGroupSchema.parse(req.body);
+  const raw = input.codeOrId.trim();
+
+  const db = await getDb();
+  const group = await db.transaction(async tx => {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+    const { rows } = await tx.query(
+      isUuid
+        ? 'SELECT id, name, name_km, code FROM groups WHERE id = $1'
+        : 'SELECT id, name, name_km, code FROM groups WHERE upper(code) = upper($1)',
+      [raw]
+    );
+    if (!rows[0]) {
+      throw notFound('Group not found with that code or ID. Please check and try again.');
+    }
+    const g = rows[0];
+
+    const { rows: existing } = await tx.query(
+      'SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [g.id, user.id]
+    );
+
+    if (!existing[0]) {
+      await tx.query('INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)', [g.id, user.id]);
+      await logActivity(tx, user, {
+        groupId: g.id,
+        type: 'member_added',
+        targetId: user.id,
+        targetTitle: `${user.name} (${user.studentId})`,
+        description: `joined group via code "${g.code}"`,
+        descriptionKm: `បានចូលរួមក្រុមតាមរយៈលេខកូដ "${g.code}"`,
+      });
+    }
+
+    return g;
+  });
+
+  res.json({ group });
+});
+
 const updateGroupSchema = z.object({
   name: z.string().trim().min(1).max(160).optional(),
   nameKm: optionalText(160),

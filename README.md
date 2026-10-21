@@ -1,136 +1,107 @@
 # LeaderSync — Team & Assignment Progress Hub
 
-A bilingual (Khmer / English) workspace for student and project teams. Leaders create groups, add members, assign tasks with deadlines, and approve work. Members post daily standups as simple checklists and track their progress.
+A modern bilingual (Khmer / English) workspace for student and project teams. Leaders create groups, add members, assign tasks with deadlines, and approve deliverables. Members post daily standups as simple checklists and track their progress transparently.
 
-- **Frontend:** React 19, Vite, Tailwind CSS 4 (`client/`)
-- **Backend:** Node.js, Express 5, TypeScript REST API (`server/`)
-- **Database:** PostgreSQL. For local development, an embedded PostgreSQL ([PGlite](https://pglite.dev)) is used automatically, so nothing needs to be installed.
-- **Auth:** email + password (bcrypt), session in an httpOnly JWT cookie, permissions enforced on the server
+- **Frontend:** React 19, Vite, Tailwind CSS 4, modular component-based architecture (`client/`)
+- **Backend:** Node.js 22, Express 5, TypeScript REST API (`server/`)
+- **Database:** Standard PostgreSQL (pgAdmin 4, Neon, Supabase, Cloud SQL, Wamp/Postgres) with embedded PGlite fallback for zero-install instant dev
+- **Auth:** Email + password (bcrypt), secure httpOnly JWT cookies, strict role-based access control (RBAC)
 
-## Project structure
+---
+
+## 🗄️ Setting Up PostgreSQL with pgAdmin 4
+
+You can manage your LeaderSync database directly in **pgAdmin 4** (or any PostgreSQL GUI):
+
+1. **Create the Database in pgAdmin:**
+   - Open **pgAdmin 4** and connect to your PostgreSQL server.
+   - Right-click on **Databases** → **Create** → **Database...**
+   - Name it `leadersync_db` (or your preferred name) and click **Save**.
+
+2. **Initialize the Schema (Optional - Backend also auto-migrates):**
+   - Right-click `leadersync_db` → click **Query Tool**.
+   - Open `/database/pgadmin_schema.sql` (or copy its SQL contents into the Query Editor).
+   - Press **F5** (or click the Execute ▶ button) to create all tables, indexes, and constraints.
+
+3. **Configure your `.env` file:**
+   ```env
+   DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/leadersync_db
+   DATABASE_SSL=false
+   JWT_SECRET=your-secure-random-32-char-secret-key-here
+   PORT=3000
+   ```
+
+4. **Start the Application:**
+   ```bash
+   npm run dev
+   ```
+   LeaderSync will automatically connect to your PostgreSQL database in pgAdmin!
+
+---
+
+## 👥 Onboarding & User Registration Policies
+
+The system is designed with a clean slate (zero dummy mock users or fake teams hardcoded):
+
+1. **Super Admin Creation (First Turn):**
+   - When the database is fresh, the **very first user to register** automatically becomes the **Super Admin** with complete management authority.
+
+2. **Inviting & Adding Members (Two Options):**
+   - **Option A: Direct Invitation (ប្រព័ន្ធអញ្ជើញ / Invite-Only):**
+     The Super Admin clicks **Add Member** in the group banner or members list, entering the member's email, student ID, and role. The student registers with that same email and student ID to claim their pre-authorized account.
+   - **Option B: Shareable Group Code / ID (ចូលរួមតាមរយៈលេខកូដក្រុម ឬ ID):**
+     Leaders can click the **Copy Code** button in the group banner (e.g. `GRP-101` or Group UUID) and send it to members. Members can click **Join Group** in the sidebar or banner to enter the code and join as a member instantly. New users can also paste the Group Code directly in the sign-up form!
+
+---
+
+## 📁 Project Structure (Component-Based)
 
 ```
-client/                 React app (Vite root)
-  index.html
-  public/               static files (favicon)
+database/
+  pgadmin_schema.sql    Standard PostgreSQL DDL script ready for pgAdmin 4
+client/                 React frontend (Vite)
   src/
-    components/         UI components (TaskBoard, DailyFeed, MembersList, modals, …)
-    context/AppContext  session + data store; every action calls the API
-    lib/api.ts          typed API client
-    lib/dates.ts        local-time-zone date helpers
-    locales/            Khmer + English strings
-server/                 Express API
-  index.ts              entry point (runs migrations, starts the server)
-  app.ts                middleware, routes, serves the built client in production
-  config.ts             environment variables
-  db/                   database adapter, migrations, demo seed
-  middleware/           auth + error handling
-  routes/               auth, bootstrap, groups, users, tasks, dailyLogs
-  services/             permissions, activity log, row mappers
-shared/                 types + standup parser used by both client and server
-Dockerfile, docker-compose.yml, render.yaml   deployment
+    components/         Modular UI components
+      JoinGroupModal.tsx       Join group via Code or ID modal
+      CreateGroupModal.tsx     Group creation modal
+      AddMemberModal.tsx       Member invitation modal
+      GroupBanner.tsx          Active group switcher, copy code, stats
+      TaskBoard.tsx            Kanban task board with review flow
+      DailyStandupBox.tsx      Today's ToDo and progress submission
+      DailyFeed.tsx            Peer daily standup stream with reactions
+      MembersList.tsx          Member management and permission controls
+      OverviewDashboard.tsx    KPI dashboard and activity audit trail
+    context/AppContext.tsx     State & API coordinator
+    lib/api.ts                 Typed REST client
+    locales/translations.ts    Khmer (ខ្មែរ) + English translations
+server/                 Express backend API
+  app.ts                Express setup, helmet CSP, static serving
+  config.ts             Environment configuration
+  db/                   PostgreSQL connection pool & migrations
+  routes/               auth, groups, tasks, dailyLogs, users, bootstrap
+server.ts               Unified full-stack dev and production entry point (port 3000)
 ```
 
-## Run locally
+---
 
-Requires **Node.js 20.19+** (22 recommended).
-
-```bash
-npm install
-cp .env.example .env        # optional for local dev; defaults work
-npm run db:seed             # optional: load demo data (see accounts below)
-npm run dev                 # API on :3000 + web on http://localhost:5173
-```
-
-Open http://localhost:5173.
-
-- **Without seeding:** click **Create account**. The first account registered becomes the **Super Admin**.
-- **With seeding:** sign in as `sopheaktun.tsp@gmail.com` (Super Admin) or `dara.pich@student.edu.kh` (member). The password for both is `password123`.
-
-Local data is stored in `./data/pglite`. Delete that folder to start fresh.
-To use a real PostgreSQL locally instead, set `DATABASE_URL` in `.env`.
-
-## Scripts
+## 🚀 Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | API (auto-reload) + Vite dev server with `/api` proxy |
-| `npm run build` | Builds the client to `dist/client` and bundles the server to `dist/server` |
-| `npm start` | Runs the production server (serves the API and the built client on one port) |
-| `npm run lint` | Type-checks client and server |
-| `npm run db:seed` | Loads demo data into an **empty** database (dev) |
-| `npm run db:seed:prod` | Same, using the built bundle (after `npm run build`) |
+| `npm run dev` | Runs full-stack server on `http://localhost:3000` with live Vite HMR |
+| `npm run build` | Builds client to `dist/client` and bundles server to `dist/server` |
+| `npm start` | Starts production server on port 3000 |
+| `npm run lint` | TypeScript type check across client, shared, and server |
 
-Database migrations run automatically every time the server starts.
+---
 
-## Environment variables
+## 🛡️ Roles & Permissions Matrix
 
-See [.env.example](.env.example) for the full list. These matter in production:
-
-| Variable | Required | Notes |
-| --- | --- | --- |
-| `NODE_ENV` | yes | `production` |
-| `DATABASE_URL` | yes | PostgreSQL connection string. If it's empty, data goes to local disk, which most hosts wipe on every redeploy. |
-| `JWT_SECRET` | yes | 32+ random characters: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `DATABASE_SSL` | no | Defaults to on in production. Set it to `false` for Postgres servers without TLS. |
-| `ALLOW_REGISTRATION` | no | `false` = only people an admin added can sign up (they claim their account) |
-| `COOKIE_SECURE` | no | Set to `false` only when serving over plain HTTP |
-| `PORT` | no | Most hosts set this for you |
-
-## Deploy
-
-The app deploys as **one Node.js service** (API + frontend on the same domain) plus **one PostgreSQL database**.
-
-### Option A — Render (easiest, uses `render.yaml`)
-1. Push this folder to a GitHub repository.
-2. In Render: **New → Blueprint** and select the repo. It creates the web service and a PostgreSQL database, and generates `JWT_SECRET`.
-3. Open the URL Render gives you and register. The first account becomes the Super Admin.
-
-> Render's free Postgres expires after 30 days. Pick a paid plan, or use Option C with a free Neon/Supabase database for long-term use.
-
-### Option B — Docker
-```bash
-docker compose up --build       # app + PostgreSQL on http://localhost:3000
-```
-For a server, build the `Dockerfile` and run it with `DATABASE_URL`, `JWT_SECRET`, and `NODE_ENV=production`. Put it behind HTTPS (e.g. Caddy or Nginx).
-
-### Option C — Any Node host (Railway, Fly.io, a VPS, …) + hosted Postgres (Neon, Supabase, …)
-```
-Build command:  npm ci --include=dev && npm run build
-Start command:  npm start
-Health check:   /api/health
-Env vars:       NODE_ENV=production, DATABASE_URL=..., JWT_SECRET=...
-```
-
-## Roles & permissions
-
-Every rule below is enforced by the API; the UI just hides what you can't do.
-
-| Action | Super Admin | Team Lead* | Member | Viewer |
+| Capability | Super Admin | Team Lead | Member | Viewer |
 | --- | :-: | :-: | :-: | :-: |
-| Create / delete groups, add / remove members, change roles | ✅ | | | |
-| Change group deadline | ✅ | group leader | | |
-| Assign, reschedule, approve, delete tasks | ✅ | ✅ | | |
-| Approve daily standups | ✅ | ✅ | | |
-| Post standups, update own tasks & checklist | ✅ | ✅ | ✅ | |
-| React, view everything in their groups, leave a group | ✅ | ✅ | ✅ | ✅ |
-
-\* Team Lead powers apply only inside groups the person belongs to. The group's creator (leader) has them too.
-
-**Adding members:** a Super Admin adds a person by email and student ID. If they don't have an account yet, one is created without a password. The person then clicks **Create account** and registers with the **same email and student ID** to claim it.
-
-## API overview
-
-All routes are under `/api` and return JSON. Everything except `/auth/*` and `/health` requires sign-in.
-
-```
-POST   /auth/register | /auth/login | /auth/logout | /auth/change-password
-GET    /auth/me, /health, /bootstrap        (bootstrap = all data the user can see)
-POST   /groups                     PATCH/DELETE /groups/:id
-POST   /groups/:id/members         DELETE /groups/:id/members/:userId   (remove or leave)
-DELETE /groups/:id/activity        PATCH  /users/:id/role
-POST   /groups/:id/tasks           PATCH  /tasks/:id/status | /tasks/:id/deadline
-POST   /tasks/:id/approve          DELETE /tasks/:id
-POST   /groups/:id/daily-logs      DELETE /daily-logs/:id
-POST   /daily-logs/:id/items/:itemId/toggle | /complete | /approve | /reactions
-```
+| Create / delete groups, invite / remove members | ✅ | | | |
+| Change group deadline | ✅ | Group Leader | | |
+| Assign, reschedule, approve, and delete tasks | ✅ | ✅ | | |
+| Approve member daily standups with notes | ✅ | ✅ | | |
+| Post daily standup ToDo, update assigned tasks | ✅ | ✅ | ✅ | |
+| Join groups via Group Code / ID, view & react | ✅ | ✅ | ✅ | ✅ |

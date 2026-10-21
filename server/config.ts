@@ -9,13 +9,22 @@ if (isProduction && jwtSecret.length < 32) {
   throw new Error('JWT_SECRET must be set to a random string of at least 32 characters in production.');
 }
 
+const rawDbUrl = (env.DATABASE_URL || '').trim();
+const isRealDbUrl = rawDbUrl.startsWith('postgres://') || rawDbUrl.startsWith('postgresql://');
+const databaseUrl = isRealDbUrl ? rawDbUrl : '';
+
+const rawPgliteDir = (env.PGLITE_DIR || '').trim();
+const pgliteDir = (!rawPgliteDir || rawPgliteDir === '1')
+  ? path.resolve('./data/pglite')
+  : path.resolve(rawPgliteDir);
+
 export const config = {
   isProduction,
   port: Number(env.PORT) || 3000,
   /** PostgreSQL connection string. When empty, an embedded PGlite database is used instead. */
-  databaseUrl: env.DATABASE_URL || '',
+  databaseUrl,
   /** Where the embedded PGlite database stores its files (only used without DATABASE_URL). */
-  pgliteDir: path.resolve(env.PGLITE_DIR || './data/pglite'),
+  pgliteDir,
   /** Set DATABASE_SSL=false for Postgres servers without TLS (e.g. local Docker). */
   databaseSsl: env.DATABASE_SSL ? env.DATABASE_SSL !== 'false' : isProduction,
   jwtSecret,

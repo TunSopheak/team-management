@@ -21,7 +21,8 @@ import {
   FolderKanban,
   CheckCircle2,
   Clock,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ interface SidebarProps {
   onOpenAssignTask: () => void;
   onOpenCreateGroup: () => void;
   onOpenAddMember: () => void;
+  onOpenJoinGroup: () => void;
   onTriggerSearch: () => void;
 }
 
@@ -46,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen,
   onOpenAssignTask,
   onOpenCreateGroup,
+  onOpenJoinGroup,
   onTriggerSearch,
 }) => {
   const {
@@ -280,9 +283,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   })}
                 </div>
 
-                {/* Create Group Action for Super Admin */}
-                {isSuperAdmin && (
-                  <div className="p-1.5 border-t border-neutral-100">
+                <div className="p-1.5 border-t border-neutral-100 flex flex-col gap-1">
+                  {isSuperAdmin && (
                     <button
                       onClick={() => {
                         setShowGroupDropdown(false);
@@ -293,8 +295,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <Plus className="w-3.5 h-3.5" />
                       <span>{t.createGroup}</span>
                     </button>
-                  </div>
-                )}
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowGroupDropdown(false);
+                      onOpenJoinGroup();
+                    }}
+                    className="w-full px-2.5 py-1.5 bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 text-xs font-semibold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>{language === 'km' ? 'ចូលរួមក្រុម (Join Group)' : 'Join Group with ID'}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

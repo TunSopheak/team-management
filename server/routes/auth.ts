@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { config } from '../config';
 import { getDb } from '../db';
 import { clearAuthCookie, requireAuth, setAuthCookie } from '../middleware/auth';
-import { conflict, forbidden, unauthorized } from '../middleware/errors';
+import { conflict, forbidden, notFound, unauthorized } from '../middleware/errors';
 import { toUser, USER_COLUMNS } from '../services/mappers';
 
 export const authRouter = Router();
@@ -24,6 +24,7 @@ const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(200),
   studentId: z.string().trim().min(1).max(60),
   password: z.string().min(8, 'must be at least 8 characters').max(200),
+  groupCode: z.string().trim().max(60).optional(),
 });
 
 const loginSchema = z.object({
@@ -61,8 +62,25 @@ authRouter.post('/register', authLimiter, async (req, res) => {
       return rows[0];
     }
 
-    if (!isFirstUser && !config.allowRegistration) {
-      throw forbidden('Registration is closed. Ask your team admin to add you to a group first.');
+    let autoJoinGroup: { id: string; name: string } | null = null;
+    if (input.groupCode) {
+      const rawCode = input.groupCode.trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawCode);
+      const { rows: grpRows } = await tx.query(
+        isUuid
+          ? 'SELECT id, name, code FROM groups WHERE id = $1'
+          : 'SELECT id, name, code FROM groups WHERE upper(code) = upper($1)',
+        [rawCode]
+      );
+      if (grpRows[0]) {
+        autoJoinGroup = grpRows[0];
+      } else if (!isFirstUser && !config.allowRegistration) {
+        throw notFound('Group with that invitation code or ID was not found.');
+      }
+    }
+
+    if (!isFirstUser && !config.allowRegistration && !autoJoinGroup) {
+      throw forbidden('Registration is invite-only. Ask your team admin to add you to a group first, or provide a valid Group Code.');
     }
 
     const { rows } = await tx.query(
@@ -76,10 +94,19 @@ authRouter.post('/register', authLimiter, async (req, res) => {
         passwordHash,
         // The very first account becomes the Super Admin so a fresh deployment is usable.
         isFirstUser ? 'super_admin' : 'member',
-        isFirstUser ? 'Team Leader' : 'Member',
+        isFirstUser ? 'Super Admin' : 'Member',
       ]
     );
-    return rows[0];
+    const newUser = rows[0];
+
+    if (autoJoinGroup) {
+      await tx.query('INSERT INTO group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [
+        autoJoinGroup.id,
+        newUser.id,
+      ]);
+    }
+
+    return newUser;
   });
 
   setAuthCookie(res, user.id);

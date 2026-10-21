@@ -1,0 +1,8 @@
+{
+  "name": "LeaderSync - Team & Assignment Progress Hub",
+  "description": "Collaborative group leadership platform for managing teams, assigning tasks with deadlines, and tracking members' daily ToDo progress.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "permissions": []
+}

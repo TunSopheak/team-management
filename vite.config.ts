@@ -19,10 +19,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
-    // In development the Express API runs separately; forward /api calls to it.
-    proxy: {
-      '/api': `http://localhost:${apiPort}`,
-    },
+    host: '0.0.0.0',
+    port: 3000,
   },
 });

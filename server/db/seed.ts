@@ -2,7 +2,7 @@
 // Every demo account gets the password from SEED_PASSWORD (default: "password123").
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { closeDb, getDb } from './index';
+import { closeDb, getDb, type Database, type Queryable } from './index';
 import { runMigrations } from './migrate';
 import {
   initialActivityEvents,
@@ -21,14 +21,13 @@ function toTimestamp(date: string, time?: string) {
   return new Date(y, mo - 1, d, hours, minutes).toISOString();
 }
 
-async function seed() {
-  const db = await getDb();
-  await runMigrations(db);
-
+export async function seedIfEmpty(db: Database): Promise<boolean> {
+  if (initialUsers.length === 0) {
+    return false;
+  }
   const { rows } = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM users');
   if (rows[0].n > 0) {
-    console.log('[seed] Database already has users; skipping. Seeding only runs on an empty database.');
-    return;
+    return false;
   }
 
   const password = process.env.SEED_PASSWORD || 'password123';
@@ -39,7 +38,7 @@ async function seed() {
     return ids.get(oldId)!;
   };
 
-  await db.transaction(async tx => {
+  await db.transaction(async (tx: Queryable) => {
     for (const u of initialUsers) {
       await tx.query(
         `INSERT INTO users (id, name, name_km, email, student_id, password_hash, role, specialty, department)
@@ -97,11 +96,18 @@ async function seed() {
 
   console.log('[seed] Demo data loaded. Sign in with any of these accounts:');
   for (const u of initialUsers) console.log(`  ${u.email.padEnd(32)} ${u.role.padEnd(12)} password: ${password}`);
+  return true;
 }
 
-seed()
-  .catch(err => {
-    console.error('[seed] failed:', err);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDb());
+if (process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js')) {
+  (async () => {
+    const db = await getDb();
+    await runMigrations(db);
+    await seedIfEmpty(db);
+  })()
+    .catch(err => {
+      console.error('[seed] failed:', err);
+      process.exitCode = 1;
+    })
+    .finally(() => closeDb());
+}

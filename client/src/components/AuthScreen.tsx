@@ -8,7 +8,7 @@ const inputClass =
 export const AuthScreen: React.FC = () => {
   const { login, register, t, language, setLanguage } = useApp();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [form, setForm] = useState({ name: '', nameKm: '', email: '', studentId: '', password: '' });
+  const [form, setForm] = useState({ name: '', nameKm: '', email: '', studentId: '', password: '', groupCode: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,6 +29,7 @@ export const AuthScreen: React.FC = () => {
           email: form.email.trim(),
           studentId: form.studentId.trim(),
           password: form.password,
+          groupCode: form.groupCode.trim() || undefined,
         });
       }
     } catch (err) {
@@ -42,6 +43,8 @@ export const AuthScreen: React.FC = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setError('');
   };
+
+  const isKm = language === 'km';
 
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
@@ -64,9 +67,18 @@ export const AuthScreen: React.FC = () => {
 
         <div className="bg-white rounded-lg border border-neutral-200 shadow-xs p-6">
           <h1 className="text-lg font-bold text-black">{mode === 'login' ? t.authWelcome : t.signUp}</h1>
-          <p className="text-xs text-neutral-500 mt-1 mb-5">
+          <p className="text-xs text-neutral-500 mt-1 mb-4">
             {mode === 'login' ? t.authSubtitle : t.authInviteNote}
           </p>
+
+          <div className="mb-4 p-2.5 rounded-md bg-neutral-100 border border-neutral-200 text-[11px] text-neutral-700 leading-relaxed">
+            <span className="font-bold text-black">
+              {isKm ? 'គោលការណ៍គណនី៖ ' : 'System Note: '}
+            </span>
+            {isKm
+              ? 'គណនីដំបូងគេបង្អស់ដែលចុះឈ្មោះនឹងក្លាយជា Super Admin ដោយស្វ័យប្រវត្តិ។ សមាជិកបន្ទាប់អាចចូលរួមតាមរយៈការអញ្ជើញ ឬលេខកូដក្រុម (Group Code / ID)។'
+              : 'The very first registered account automatically becomes Super Admin. Subsequent members can join via leader invitation or Group Code / ID.'}
+          </div>
 
           {error && (
             <div role="alert" className="mb-4 p-3 text-xs rounded-md border border-black bg-neutral-100 text-black font-medium">
@@ -128,10 +140,24 @@ export const AuthScreen: React.FC = () => {
               {mode === 'register' && <span className="text-[11px] text-neutral-500">{t.passwordHint}</span>}
             </label>
 
+            {mode === 'register' && (
+              <label className="block">
+                <span className="block text-xs font-bold text-black mb-1">
+                  {isKm ? 'លេខកូដក្រុម ឬ Group ID (ប្រសិនបើមាន)' : 'Group Code or ID (Optional)'}
+                </span>
+                <input
+                  value={form.groupCode}
+                  onChange={update('groupCode')}
+                  placeholder={isKm ? 'ឧ. GRP-101 (អាចបំពេញពេលក្រោយបាន)' : 'e.g. GRP-101 (optional)'}
+                  className={`${inputClass} font-mono uppercase placeholder:normal-case placeholder:font-sans`}
+                />
+              </label>
+            )}
+
             <button
               type="submit"
               disabled={submitting}
-              className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-black hover:bg-neutral-800 disabled:opacity-60 text-white text-sm font-semibold rounded-md cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-black hover:bg-neutral-800 disabled:opacity-60 text-white text-sm font-semibold rounded-md cursor-pointer mt-1"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

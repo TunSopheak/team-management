@@ -14,9 +14,16 @@ async function main() {
     );
   }
 
+  try {
+    const { seedIfEmpty } = await import('./db/seed');
+    await seedIfEmpty(db);
+  } catch (err) {
+    console.warn('[db] Seed check warning:', err);
+  }
+
   const app = createApp();
-  const server = app.listen(config.port, () => {
-    console.log(`[server] LeaderSync API listening on http://localhost:${config.port}`);
+  const server = app.listen(config.port, '0.0.0.0', () => {
+    console.log(`[server] LeaderSync API listening on http://0.0.0.0:${config.port}`);
   });
 
   const shutdown = (signal: string) => {

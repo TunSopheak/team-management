@@ -14,6 +14,7 @@ import { AddMemberModal } from './components/AddMemberModal';
 import { DeleteGroupModal } from './components/DeleteGroupModal';
 import { LeaveGroupModal } from './components/LeaveGroupModal';
 import { AssignmentReportModal } from './components/AssignmentReportModal';
+import { JoinGroupModal } from './components/JoinGroupModal';
 import { AuthScreen } from './components/AuthScreen';
 import { Notice } from './components/Notice';
 import { Loader2 } from 'lucide-react';
@@ -30,6 +31,7 @@ const MainApp: React.FC = () => {
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [isJoinGroupOpen, setIsJoinGroupOpen] = useState(false);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
   const [leaveGroupId, setLeaveGroupId] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -64,6 +66,7 @@ const MainApp: React.FC = () => {
         onOpenAssignTask={() => setIsAssignTaskOpen(true)}
         onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
         onOpenAddMember={() => setIsAddMemberOpen(true)}
+        onOpenJoinGroup={() => setIsJoinGroupOpen(true)}
         onTriggerSearch={handleTriggerSearch}
       />
 
@@ -94,6 +97,7 @@ const MainApp: React.FC = () => {
             onOpenAddMember={() => setIsAddMemberOpen(true)}
             onOpenDeleteGroup={id => setDeleteGroupId(id)}
             onOpenLeaveGroup={id => setLeaveGroupId(id)}
+            onOpenJoinGroup={() => setIsJoinGroupOpen(true)}
           />
 
           {/* Content Container (Standard responsive layout) */}
@@ -189,6 +193,11 @@ const MainApp: React.FC = () => {
       <LeaveGroupModal
         groupId={leaveGroupId}
         onClose={() => setLeaveGroupId(null)}
+      />
+
+      <JoinGroupModal
+        isOpen={isJoinGroupOpen}
+        onClose={() => setIsJoinGroupOpen(false)}
       />
 
       <AssignmentReportModal

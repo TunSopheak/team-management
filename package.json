@@ -8,15 +8,15 @@
     "node": ">=20.19"
   },
   "scripts": {
-    "dev": "concurrently -k -n api,web -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev": "tsx server.ts",
     "dev:server": "tsx watch --clear-screen=false server/index.ts",
     "dev:client": "vite",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts server/db/seed.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outdir=dist/server",
-    "start": "node dist/server/index.js",
+    "build:server": "esbuild server.ts server/index.ts server/db/seed.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outdir=dist/server",
+    "start": "node server.ts",
     "db:seed": "tsx server/db/seed.ts",
-    "db:seed:prod": "node dist/server/db/seed.js",
+    "db:seed:prod": "node dist/server/server/db/seed.js",
     "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p server/tsconfig.json",
     "clean": "rimraf dist"
   },

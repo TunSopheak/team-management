@@ -74,7 +74,21 @@ let instance: Database | null = null;
 
 export async function getDb(): Promise<Database> {
   if (!instance) {
-    instance = config.databaseUrl ? await createPostgres() : await createPglite();
+    if (config.databaseUrl) {
+      try {
+        const db = await createPostgres();
+        await Promise.race([
+          db.query('SELECT 1'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('PostgreSQL connection timeout (3s)')), 3000)),
+        ]);
+        instance = db;
+      } catch (err) {
+        console.warn('[db] PostgreSQL connection failed, falling back to embedded PGlite:', (err as Error).message);
+        instance = await createPglite();
+      }
+    } else {
+      instance = await createPglite();
+    }
   }
   return instance;
 }
